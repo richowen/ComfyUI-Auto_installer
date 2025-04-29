@@ -155,7 +155,7 @@ fi
 step "Checking required dependencies..."
 DEPS_TO_INSTALL=()
 
-for dep in git curl wget p7zip-full python3-venv python3-full python3-dev build-essential cmake; do
+for dep in git curl wget p7zip-full python3-venv python3-full python3-dev build-essential cmake sage-attention triton; do
     if ! command_exists "$dep" && ! dpkg -l | grep -q "$dep"; then
         DEPS_TO_INSTALL+=("$dep")
     fi
