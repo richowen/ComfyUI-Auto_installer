@@ -75,6 +75,16 @@ download_with_civitai_api() {
 
 echo -e "${YELLOW}=== ComfyUI LoRA Downloader ===${NC}"
 echo -e "${YELLOW}This script will help you download LoRA models from civitai.ai or Hugging Face${NC}"
+echo -e "${YELLOW}Supported URL formats:${NC}"
+echo -e "${GREEN}1. Civitai direct download URL:${NC}"
+echo -e "   https://civitai.com/api/download/models/1498121?type=Model&format=SafeTensor"
+echo -e "${GREEN}2. Civitai model page URL with modelVersionId:${NC}"
+echo -e "   https://civitai.com/models/929497?modelVersionId=1498121"
+echo -e "${GREEN}3. Civitai model page URL (you'll be asked for modelVersionId):${NC}"
+echo -e "   https://civitai.com/models/929497/aesthetic-quality-modifiers-masterpiece"
+echo -e "${GREEN}4. Hugging Face URL:${NC}"
+echo -e "   https://huggingface.co/username/modelname/resolve/main/filename.safetensors"
+echo ""
 
 # Ask for Civitai API key
 echo -e "${YELLOW}If you plan to download from Civitai.ai, please enter your API key.${NC}"
@@ -99,7 +109,68 @@ while true; do
     fi
     
     # Validate URL format and identify type
-    if [[ "$LORA_URL" == *"civitai.ai"* ]]; then
+    if [[ "$LORA_URL" == *"civitai.com"* ]]; then
+        # Handle direct API download URLs
+        if [[ "$LORA_URL" == *"/api/download/models/"* ]]; then
+            echo -e "${GREEN}Civitai direct download URL detected.${NC}"
+            # Already in the correct format
+        # Convert Civitai model page URL to download URL if needed
+        elif [[ "$LORA_URL" == *"modelVersionId="* ]]; then
+            # Extract the model version ID from the URL
+            MODEL_VERSION_ID=$(echo "$LORA_URL" | grep -oP 'modelVersionId=\K[0-9]+')
+            if [ -n "$MODEL_VERSION_ID" ]; then
+                DOWNLOAD_URL="https://civitai.com/api/download/models/$MODEL_VERSION_ID?type=Model&format=SafeTensor"
+                echo -e "${GREEN}Converted Civitai page URL to download URL.${NC}"
+                LORA_URL="$DOWNLOAD_URL"
+            fi
+        # Handle URLs like https://civitai.com/models/929497/aesthetic-quality-modifiers-masterpiece
+        elif [[ "$LORA_URL" == *"/models/"* ]]; then
+            # Extract model ID from the URL path
+            MODEL_ID=$(echo "$LORA_URL" | grep -oP '/models/\K[0-9]+')
+            
+            if [ -n "$MODEL_ID" ]; then
+                echo -e "${YELLOW}Fetching model information from Civitai API...${NC}"
+                
+                # API call to get model information
+                MODEL_INFO=$(curl -s "https://civitai.com/api/v1/models/$MODEL_ID")
+                
+                # Parse JSON to extract the first version's ID (version 0)
+                MODEL_VERSION_ID=$(echo "$MODEL_INFO" | grep -o '"modelVersions":\[[^]]*\]' | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
+                
+                if [ -n "$MODEL_VERSION_ID" ]; then
+                    DOWNLOAD_URL="https://civitai.com/api/download/models/$MODEL_VERSION_ID?type=Model&format=SafeTensor"
+                    echo -e "${GREEN}Successfully created download URL using Civitai API (using first version).${NC}"
+                    LORA_URL="$DOWNLOAD_URL"
+                else
+                    # API call failed or couldn't parse the response, fall back to manual entry
+                    echo -e "${YELLOW}Could not automatically determine model version ID.${NC}"
+                    echo -e "${YELLOW}Please enter the modelVersionId manually:${NC}"
+                    echo -e "${YELLOW}You can find this by:${NC}"
+                    echo -e "${YELLOW}1. Look for '?modelVersionId=' in the browser URL, or${NC}"
+                    echo -e "${YELLOW}2. Click 'Download' on the model page and check the URL${NC}"
+                    echo -e "${YELLOW}   (it will contain /api/download/models/NUMBER)${NC}"
+                    read -rp "Model Version ID: " MODEL_VERSION_ID
+                    
+                    if [ -n "$MODEL_VERSION_ID" ]; then
+                        DOWNLOAD_URL="https://civitai.com/api/download/models/$MODEL_VERSION_ID?type=Model&format=SafeTensor"
+                        echo -e "${GREEN}Created download URL from manually entered version ID.${NC}"
+                        LORA_URL="$DOWNLOAD_URL"
+                    fi
+                fi
+            else
+                # Could not extract model ID from URL
+                echo -e "${RED}Could not extract model ID from URL.${NC}"
+                echo -e "${YELLOW}Please enter the model version ID manually:${NC}"
+                read -rp "Model Version ID: " MODEL_VERSION_ID
+                
+                if [ -n "$MODEL_VERSION_ID" ]; then
+                    DOWNLOAD_URL="https://civitai.com/api/download/models/$MODEL_VERSION_ID?type=Model&format=SafeTensor"
+                    echo -e "${GREEN}Created download URL from model version ID.${NC}"
+                    LORA_URL="$DOWNLOAD_URL"
+                fi
+            fi
+        fi
+        
         # Check if API key is provided for Civitai URLs
         if [ -z "$CIVITAI_API_KEY" ]; then
             echo -e "${RED}Warning: No Civitai API key provided. Download may fail.${NC}"
