@@ -19,7 +19,7 @@ show_spinner() {
     local delay=0.1
     local spinstr='◐◓◑◒'  # Cute donut spinner
     local i=0
-    local elapsed=0
+    local start_time=$(date +%s)
 
     tput civis  # Hide cursor
     echo -ne "\e[1;36m$message \e[0m"
@@ -27,14 +27,17 @@ show_spinner() {
     while kill -0 "$pid" 2>/dev/null; do
         local idx=$((i % ${#spinstr}))
         local ch="${spinstr:$idx:1}"
+        local now=$(date +%s)
+        local elapsed=$((now - start_time))
+
         printf "\r\e[1;36m$message \e[0m[%s] \e[2m(%ds)\e[0m" "$ch" "$elapsed"
         sleep "$delay"
         i=$((i + 1))
-        elapsed=$((elapsed + 1))
     done
 
-    printf "\r\e[1;32m$message done! (%ds)\e[0m\n" "$elapsed"
-    tput cnorm  # Show cursor again
+    local total_time=$(( $(date +%s) - start_time ))
+    printf "\r\e[1;32m$message done! (%ds)\e[0m\n" "$total_time"
+    tput cnorm  # Restore cursor
 }
 
 # Function to show progress for file downloads
@@ -44,7 +47,10 @@ download_with_progress() {
     local message=$3
     
     echo -e "${YELLOW}$message${NC}"
-    curl -L --progress-bar -o "$output_file" "$url" >> "$logFile" 2>&1
+    
+    # Download file with progress bar
+    curl -L --progress-bar -o "$output_file" "$url" | tee -a "$logFile" > /dev/null
+    
     echo -e " -> Downloaded to $(basename "$output_file")"
 }
 

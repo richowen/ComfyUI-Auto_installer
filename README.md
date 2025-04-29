@@ -1,57 +1,33 @@
----
-license: mit
----
-# UmeAiRT - ComfyUI auto installer
+# ComfyUI Auto Installer
 
-I'm sharing with you my installation script, which automatically provides ComfyUI, workflows, model Flux fp8 and GGUF, ...
+Easy setup for ComfyUI with WAN2.1 models and LoRA support.
 
-Just run "ComfyUI-AllinOne-Auto_install.bat".
-With a few questions at the beginning of the script, only the desired elements will be downloaded.
+## Quick Install
 
-## What's included :
+### Ubuntu/Linux
+```bash
+wget -qO- https://raw.githubusercontent.com/richowen/ComfyUI-Auto_installer/main/bootstrap.sh | bash
+```
 
-### ComfyUI :
-- portable version nvidia cu121
-- ComfyUI Manager
-- new interface settings
+## Features
 
-### Workflow :
-- TXT to IMG
-- IMG to IMG
-- Inpainting
-- Outpainting
-- Upscale
-- ControlNet DEPTH
-- ControlNet CANNY
-- ControlNet HED
-- PuLID
-- IMG to TXT
+- **WAN2.1 Models**: Text-to-video and image-to-video capabilities
+- **Custom LoRAs**: Download from civitai.ai and huggingface.co
+- **Model Options**: bf16, fp16, fp8, and GGUF quantized versions
+- **GPU Optimization**: Standard and low VRAM modes
 
-### Flux1
-- flux1-dev
-- flux1-dev-fp8
-- flux1-schnell-fp8
-- clip_l
-- t5xxl_fp8_e4m3fn
-- t5xxl_fp16
-- ae
+## Usage
 
-### GGUF
-- flux1-dev-Q8_0
-- t5-v1_1-xxl-encoder-Q8_0
-- flux1-dev-Q5_K_S
-- t5-v1_1-xxl-encoder-Q5_K_M
-- flux1-dev-Q4_K_S
-- t5-v1_1-xxl-encoder-Q3_K_L
+After installation:
+1. Run `./run_comfyui.sh` (or low VRAM version)
+2. Open http://localhost:8188 in your browser
 
-### Optimised text encoder
-- ViT-L-14-TEXT-detail-improved-hiT-GmP-TE-only-HF
+## Options
 
-### Upscale Model :
-- 4x_NMKD-Siax_200k
-- 4x-ClearRealityV1
+```bash
+./bootstrap.sh --directory PATH --yes
+```
 
-### ControlNet :
-- flux-canny-controlnet-v3
-- flux-depth-controlnet-v3
-- flux-hed-controlnet-v3
+- `--directory PATH`: Custom install location
+- `--branch BRANCH`: Use specific branch
+- `--yes`: Non-interactive mode

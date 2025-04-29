@@ -1,56 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ──[ Colors ]────────────────────────────────────────
-YELLOW='\033[1;33m'
-GREEN='\033[1;32m'
-RED='\033[1;31m'
-BLUE='\033[1;34m'
-CYAN='\033[1;36m'
+# Colors for output
+YELLOW='\033[33m'
+GREEN='\033[32m'
+RED='\033[31m'
+BLUE='\033[34m'
 NC='\033[0m'
 
-# ──[ Logging Helpers ]──────────────────────────────
-step()    { echo -e "\n${BLUE}==> $*${NC}"; }
-info()    { echo -e "   ${CYAN}$*${NC}"; }
-warn()    { echo -e "   ${YELLOW}⚠ $*${NC}"; }
-error()   { echo -e "${RED}✖ $*${NC}"; }
-success() { echo -e "${GREEN}✔ $*${NC}"; }
-
-# ──[ Cute Spinner ]──────────────────────────────────
-show_spinner() {
-    local pid=$1
-    local message=$2
-    local delay=0.1
-    local spinstr='◐◓◑◒'
-    local i=0
-    local start_time=$(date +%s)
-
-    tput civis
-    echo -ne "${CYAN}${message} ${NC}"
-
-    while kill -0 "$pid" 2>/dev/null; do
-        local idx=$((i % ${#spinstr}))
-        local ch="${spinstr:$idx:1}"
-        local now=$(date +%s)
-        local elapsed=$((now - start_time))
-        printf "\r${CYAN}${message} ${NC}[%s] (%ds)" "$ch" "$elapsed"
-        sleep "$delay"
-        i=$((i + 1))
-    done
-
-    local total_time=$(( $(date +%s) - start_time ))
-    printf "\r${GREEN}${message} done! (%ds)${NC}\n" "$total_time"
-    tput cnorm
-}
-
-# ──[ Defaults & Globals ]────────────────────────────
+# Default installation directory
 DEFAULT_DIR="$HOME/comfyui-workspace"
 INSTALL_DIR="$DEFAULT_DIR"
+
+# Repository URL
 REPO_URL="https://github.com/richowen/ComfyUI-Auto_installer.git"
 BRANCH="main"
-NONINTERACTIVE=false
 
-# ──[ CLI Argument Parsing ]──────────────────────────
+# Function to display usage information
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
@@ -61,60 +27,134 @@ usage() {
     exit 1
 }
 
+# Parse command line arguments
+NONINTERACTIVE=false
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -d|--directory) INSTALL_DIR="$2"; shift 2;;
-        -b|--branch)    BRANCH="$2"; shift 2;;
-        -y|--yes)       NONINTERACTIVE=true; shift;;
-        -h|--help)      usage;;
-        *) error "Unknown option: $1"; usage;;
+        -d|--directory)
+            INSTALL_DIR="$2"
+            shift 2
+            ;;
+        -b|--branch)
+            BRANCH="$2"
+            shift 2
+            ;;
+        -y|--yes)
+            NONINTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            usage
+            ;;
     esac
 done
 
-# ──[ Utility Functions ]─────────────────────────────
-command_exists() { command -v "$1" &>/dev/null; }
-confirm_or_exit() {
-    if [ "$NONINTERACTIVE" = true ]; then return; fi
-    read -rp "$1 (y/N) " response
-    [[ "$response" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" &>/dev/null
 }
 
-# ──[ Welcome Banner ]────────────────────────────────
+# Function to show spinner during long operations
+show_spinner() {
+    local message=$1
+    shift
+    local cmd=("$@")
+    local delay=0.1
+    local spinstr='|/-\'
+    local i=0
+
+    echo -n "$message "
+
+    "${cmd[@]}" &
+    local pid=$!
+
+    while kill -0 $pid 2>/dev/null; do
+        i=$(((i + 1) % 4))
+        printf "\r$message [%c]" "${spinstr:$i:1}"
+        sleep $delay
+    done
+
+    wait $pid 2>/dev/null
+    local exit_code=$?
+
+    printf "\r$message [✔] Done!%s\n" "$(printf '%*s' $((40 - ${#message})) '')"
+
+    return $exit_code
+}
+
+# Function to print a step with a specific message
+step() {
+    echo -e "${BLUE}───[ $1 ]──────────────────────────────────────${NC}"
+}
+
 echo -e "${BLUE}======================================================${NC}"
 echo -e "${BLUE}         ComfyUI - WAN2.1 - Ubuntu Installer         ${NC}"
 echo -e "${BLUE}======================================================${NC}"
 
-# ──[ Root Check ]────────────────────────────────────
+# Check if running as root and warn user
 if [ "$(id -u)" -eq 0 ]; then
-    warn "You are running this script as root."
-    warn "It's recommended to run as a normal user with sudo."
-    confirm_or_exit "Continue anyway?"
+    echo -e "${RED}Warning: You are running this script as root.${NC}"
+    echo -e "${RED}It's recommended to run as a normal user with sudo privileges.${NC}"
+    if [ "$NONINTERACTIVE" != true ]; then
+        read -rp "Continue anyway? (y/N) " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    fi
 fi
 
-# ──[ OS Compatibility Check ]────────────────────────
+# Check for Ubuntu/Debian
 if ! command_exists apt-get; then
-    error "This script is intended for Ubuntu/Debian systems."
-    confirm_or_exit "Continue anyway?"
+    echo -e "${RED}This script is designed for Ubuntu/Debian systems.${NC}"
+    echo -e "${RED}Your system does not have apt-get. Script may not work as expected.${NC}"
+    if [ "$NONINTERACTIVE" != true ]; then
+        read -rp "Continue anyway? (y/N) " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    fi
 fi
 
-# ──[ GPU Detection ]─────────────────────────────────
+# Check if NVIDIA GPU is available
 if command_exists nvidia-smi; then
-    success "NVIDIA GPU detected: $(nvidia-smi --query-gpu=name --format=csv,noheader)"
+    echo -e "${GREEN}NVIDIA GPU detected.${NC}"
+    nvidia-smi --query-gpu=name --format=csv,noheader
 else
-    warn "NVIDIA GPU not detected. ComfyUI may not function optimally."
-    confirm_or_exit "Continue anyway?"
+    echo -e "${RED}Warning: NVIDIA GPU not detected or driver not installed.${NC}"
+    echo -e "${RED}ComfyUI requires an NVIDIA GPU for optimal performance.${NC}"
+    if [ "$NONINTERACTIVE" != true ]; then
+        read -rp "Continue anyway? (y/N) " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    fi
 fi
 
-# ──[ Disk Space Check ]──────────────────────────────
+# Check for free disk space (need at least 20GB)
 FREE_SPACE=$(df -BG --output=avail "$HOME" | tail -n 1 | tr -d 'G')
 if [ "$FREE_SPACE" -lt 20 ]; then
-    warn "Less than 20GB free disk space."
-    confirm_or_exit "Continue anyway?"
+    echo -e "${RED}Warning: Less than 20GB free disk space available.${NC}"
+    echo -e "${RED}ComfyUI with models may require significant disk space.${NC}"
+    if [ "$NONINTERACTIVE" != true ]; then
+        read -rp "Continue anyway? (y/N) " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    fi
 fi
 
-# ──[ Dependency Check ]──────────────────────────────
-step "Checking required dependencies"
+# Check and install required dependencies
+step "Checking required dependencies..."
 DEPS_TO_INSTALL=()
+
 for dep in git curl wget p7zip-full python3-venv python3-full python3-dev build-essential cmake; do
     if ! command_exists "$dep" && ! dpkg -l | grep -q "$dep"; then
         DEPS_TO_INSTALL+=("$dep")
@@ -122,49 +162,51 @@ for dep in git curl wget p7zip-full python3-venv python3-full python3-dev build-
 done
 
 if [ ${#DEPS_TO_INSTALL[@]} -gt 0 ]; then
-    info "Installing: ${DEPS_TO_INSTALL[*]}"
-    (sudo apt-get update && sudo apt-get install -y "${DEPS_TO_INSTALL[@]}") &
-    show_spinner $! "Installing dependencies"
-else
-    success "All dependencies are satisfied."
+    step "Installing required dependencies"
+    sudo apt-get update
+    sudo apt-get install -y "${DEPS_TO_INSTALL[@]}"
 fi
 
-# ──[ Directory Setup ]───────────────────────────────
+# Create and navigate to installation directory
 step "Creating installation directory: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-# ──[ Clone or Update Repository ]────────────────────
-if [ -d "ComfyUI-Auto_installer" ]; then
-    step "Repository already exists."
+# Check if ComfyUI-Auto_installer already exists
+if [ -d "$INSTALL_DIR/ComfyUI-Auto_installer" ]; then
+    step "ComfyUI-Auto_installer directory already exists."
     if [ "$NONINTERACTIVE" != true ]; then
         read -rp "Update existing repository? (Y/n) " response
         if [[ ! "$response" =~ ^[Nn]$ ]]; then
-            (cd ComfyUI-Auto_installer && git fetch && git reset --hard "origin/$BRANCH")
+            cd "$INSTALL_DIR/ComfyUI-Auto_installer"
+            git fetch
+            git reset --hard "origin/$BRANCH"
         fi
     else
-        (cd ComfyUI-Auto_installer && git fetch && git reset --hard "origin/$BRANCH")
+        cd "$INSTALL_DIR/ComfyUI-Auto_installer"
+        git fetch
+        git reset --hard "origin/$BRANCH"
     fi
 else
-    step "Cloning repository"
-    (git clone --branch "$BRANCH" "$REPO_URL" ComfyUI-Auto_installer) &
-    show_spinner $! "Cloning ComfyUI-Auto_installer"
+    # Clone repository
+    step "Cloning ComfyUI-Auto_installer repository..."
+    git clone --branch "$BRANCH" "$REPO_URL" ComfyUI-Auto_installer
+    cd "$INSTALL_DIR/ComfyUI-Auto_installer"
 fi
 
-cd ComfyUI-Auto_installer
-
-# ──[ Permissions & Install ]─────────────────────────
-step "Setting executable permissions"
+# Make scripts executable
+step "Setting executable permissions..."
 find . -name "*.sh" -type f -exec chmod +x {} \;
 
+# Run the installer
 step "Running installer"
-(./UmeAiRT-AllinOne-Auto_install.sh) &
-show_spinner $! "Installing ComfyUI environment"
+./UmeAiRT-AllinOne-Auto_install.sh
 
-# ──[ Finish ]────────────────────────────────────────
-success "Bootstrap complete!"
-echo -e "\n${BLUE}You can now use ComfyUI with:${NC}"
+# Final instructions
+echo -e "${GREEN}Bootstrap complete!${NC}"
+echo -e "${BLUE}You can now use ComfyUI with the following commands:${NC}"
 echo "  cd $INSTALL_DIR"
 echo "  ./run_comfyui.sh         - Standard mode"
 echo "  ./run_comfyui_lowvram.sh - Low VRAM mode"
-echo -e "\n${BLUE}Open http://localhost:8188 in your browser once it's running.${NC}"
+echo ""
+echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
