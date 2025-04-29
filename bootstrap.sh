@@ -8,6 +8,49 @@ RED='\033[31m'
 BLUE='\033[34m'
 NC='\033[0m'
 
+# Default installation directory and repo settings
+DEFAULT_DIR="$HOME/comfyui-workspace"
+INSTALL_DIR="$DEFAULT_DIR"
+REPO_URL="https://github.com/richowen/ComfyUI-Auto_installer.git"
+BRANCH="main"
+NONINTERACTIVE=false
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -d, --directory DIR    Installation directory (default: $DEFAULT_DIR)"
+    echo "  -b, --branch BRANCH    Git branch to use (default: main)"
+    echo "  -y, --yes              Non-interactive mode, answer yes to all prompts"
+    echo "  -h, --help             Display this help message"
+    exit 1
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--directory)
+            INSTALL_DIR="$2"
+            shift 2
+            ;;
+        -b|--branch)
+            BRANCH="$2"
+            shift 2
+            ;;
+        -y|--yes)
+            NONINTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            usage
+            ;;
+    esac
+done
+
 # Get the absolute path of this script
 SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"

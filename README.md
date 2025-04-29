@@ -6,7 +6,7 @@ Easy setup for ComfyUI with WAN2.1 models and LoRA support.
 
 ### Ubuntu/Linux
 ```bash
-find $HOME -name "bootstrap.sh" -type f -delete 2>/dev/null || true && wget https://raw.githubusercontent.com/richowen/ComfyUI-Auto_installer/main/bootstrap.sh && chmod +x bootstrap.sh && ./bootstrap.sh
+BOOTSTRAP_TMPFILE=$(mktemp) && wget https://raw.githubusercontent.com/richowen/ComfyUI-Auto_installer/main/bootstrap.sh -O "$BOOTSTRAP_TMPFILE" && chmod +x "$BOOTSTRAP_TMPFILE" && bash "$BOOTSTRAP_TMPFILE" && rm -f "$BOOTSTRAP_TMPFILE"
 ```
 
 ## Features
