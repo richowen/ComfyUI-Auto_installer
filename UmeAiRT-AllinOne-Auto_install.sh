@@ -123,7 +123,28 @@ declare -A repos=(
     ["ComfyUI-WanStartEndFramesNative"]="https://github.com/Flow-two/ComfyUI-WanStartEndFramesNative"
     ["ComfyUI-Image-Saver"]="https://github.com/alexopus/ComfyUI-Image-Saver"
     ["ComfyUI_UltimateSDUpscale"]="https://github.com/ssitu/ComfyUI_UltimateSDUpscale"
+    ["ComfyUI-MultiGPU"]="https://github.com/pollockjj/ComfyUI-MultiGPU"
 )
+
+# Function to install requirements and run install.py
+install_node_requirements() {
+    local node_path="$1"
+    local node_name="$2"
+    local indent="$3"
+    
+    # Check for and install requirements.txt
+    if [ -f "$node_path/requirements.txt" ]; then
+        $PIP install -r "$node_path/requirements.txt" --no-warn-script-location >> "$logFile" 2>&1 &
+        show_spinner $! "${indent}Installing $node_name requirements..."
+    fi
+    
+    # Check for and run install.py
+    if [ -f "$node_path/install.py" ]; then
+        echo -e "${indent}Found $node_name install.py script, running it..."
+        $PYTHON "$node_path/install.py" >> "$logFile" 2>&1 &
+        show_spinner $! "${indent}Running $node_name install.py script..."
+    fi
+}
 
 # Function to track total progress
 total_repos=${#repos[@]}
@@ -136,22 +157,26 @@ for repo in "${!repos[@]}"; do
     git clone "${repos[$repo]}" "$customNodesPath/$repo" >> "$logFile" 2>&1 &
     show_spinner $! "  Cloning repository..."
     
-    if [ -f "$customNodesPath/$repo/requirements.txt" ]; then
-        $PIP install -r "$customNodesPath/$repo/requirements.txt" --no-warn-script-location >> "$logFile" 2>&1 &
-        show_spinner $! "  Installing requirements..."
-    fi
+    # Install requirements and run install.py
+    install_node_requirements "$customNodesPath/$repo" "$repo" "  "
 done
 
 # Special requirements for some nodes
 echo -e "${YELLOW}Installing special requirements...${NC}"
+
+# Special case for Impact-Pack subpack
 if [ -f "$customNodesPath/ComfyUI-Impact-Pack/impact_subpack/requirements.txt" ]; then
     $PIP install -r "$customNodesPath/ComfyUI-Impact-Pack/impact_subpack/requirements.txt" --no-warn-script-location >> "$logFile" 2>&1 &
     show_spinner $! "Installing Impact-Pack subpack requirements..."
 fi
+install_node_requirements "$customNodesPath/ComfyUI-Impact-Pack/impact_subpack" "Impact-Pack subpack" ""
+
+# Special case for Frame-Interpolation with cupy
 if [ -f "$customNodesPath/ComfyUI-Frame-Interpolation/requirements-with-cupy.txt" ]; then
     $PIP install -r "$customNodesPath/ComfyUI-Frame-Interpolation/requirements-with-cupy.txt" --no-warn-script-location >> "$logFile" 2>&1 &
     show_spinner $! "Installing Frame-Interpolation requirements..."
 fi
+install_node_requirements "$customNodesPath/ComfyUI-Frame-Interpolation" "Frame-Interpolation" ""
 
 # Additional pip installs
 echo -e "${YELLOW}Installing additional packages...${NC}"
