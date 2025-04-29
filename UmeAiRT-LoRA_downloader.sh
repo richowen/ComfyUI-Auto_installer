@@ -73,6 +73,13 @@ download_with_civitai_api() {
     echo -e " -> Downloaded to $(basename "$output_file")"
 }
 
+# Function to sanitize filenames
+sanitize_filename() {
+    local filename=$1
+    # Replace spaces and special characters with underscores
+    echo "$filename" | tr -c '[:alnum:]_.-' '_' | tr -s '_'
+}
+
 echo -e "${YELLOW}=== ComfyUI LoRA Downloader ===${NC}"
 echo -e "${YELLOW}This script will help you download LoRA models from civitai.ai or Hugging Face${NC}"
 echo -e "${YELLOW}Supported URL formats:${NC}"
@@ -96,6 +103,7 @@ read -rp "Civitai API Key: " CIVITAI_API_KEY
 declare -a LORA_URLS
 declare -a LORA_FILENAMES
 declare -a LORA_TYPES  # To track if URL is from civitai or huggingface
+declare -a MODEL_NAMES # To store model names for better filenames
 
 echo -e "${YELLOW}Enter the civitai.ai or Hugging Face URLs for LoRAs.${NC}"
 echo -e "${YELLOW}Enter one URL per line. Type 'done' when finished.${NC}"
@@ -110,29 +118,63 @@ while true; do
     
     # Validate URL format and identify type
     if [[ "$LORA_URL" == *"civitai.com"* ]]; then
+        # Initialize model name as empty
+        MODEL_NAME=""
+        
         # Handle direct API download URLs
         if [[ "$LORA_URL" == *"/api/download/models/"* ]]; then
             echo -e "${GREEN}Civitai direct download URL detected.${NC}"
             # Already in the correct format
+            
+            # Try to extract model version ID for API lookup
+            MODEL_VERSION_ID=$(echo "$LORA_URL" | grep -oP '/models/\K[0-9]+' | head -1)
+            if [ -n "$MODEL_VERSION_ID" ]; then
+                # Lookup the model name
+                MODEL_VERSION_INFO=$(curl -s "https://civitai.com/api/v1/model-versions/$MODEL_VERSION_ID")
+                MODEL_NAME=$(echo "$MODEL_VERSION_INFO" | grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
+            fi
+            
         # Convert Civitai model page URL to download URL if needed
         elif [[ "$LORA_URL" == *"modelVersionId="* ]]; then
             # Extract the model version ID from the URL
             MODEL_VERSION_ID=$(echo "$LORA_URL" | grep -oP 'modelVersionId=\K[0-9]+')
             if [ -n "$MODEL_VERSION_ID" ]; then
+                # Extract the model name from the URL path
+                MODEL_NAME=$(echo "$LORA_URL" | grep -oP '/models/[0-9]+/\K[^?]*' || echo "")
+                if [ -z "$MODEL_NAME" ]; then
+                    # Try to get the model name from the API
+                    MODEL_VERSION_INFO=$(curl -s "https://civitai.com/api/v1/model-versions/$MODEL_VERSION_ID")
+                    MODEL_NAME=$(echo "$MODEL_VERSION_INFO" | grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
+                fi
+                
+                # Replace hyphens and URL encoding in the name
+                MODEL_NAME=$(echo "$MODEL_NAME" | tr '-' ' ' | sed 's/%20/ /g')
+                
                 DOWNLOAD_URL="https://civitai.com/api/download/models/$MODEL_VERSION_ID?type=Model&format=SafeTensor"
                 echo -e "${GREEN}Converted Civitai page URL to download URL.${NC}"
                 LORA_URL="$DOWNLOAD_URL"
             fi
+            
         # Handle URLs like https://civitai.com/models/929497/aesthetic-quality-modifiers-masterpiece
         elif [[ "$LORA_URL" == *"/models/"* ]]; then
             # Extract model ID from the URL path
             MODEL_ID=$(echo "$LORA_URL" | grep -oP '/models/\K[0-9]+')
+            
+            # Extract model name from the URL path
+            MODEL_NAME=$(echo "$LORA_URL" | grep -oP '/models/[0-9]+/\K[^?]*' || echo "")
+            # Replace hyphens and URL encoding in the name
+            MODEL_NAME=$(echo "$MODEL_NAME" | tr '-' ' ' | sed 's/%20/ /g')
             
             if [ -n "$MODEL_ID" ]; then
                 echo -e "${YELLOW}Fetching model information from Civitai API...${NC}"
                 
                 # API call to get model information
                 MODEL_INFO=$(curl -s "https://civitai.com/api/v1/models/$MODEL_ID")
+                
+                # If model name is still empty, try to extract it from the API response
+                if [ -z "$MODEL_NAME" ]; then
+                    MODEL_NAME=$(echo "$MODEL_INFO" | grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
+                fi
                 
                 # Parse JSON to extract the first version's ID (version 0)
                 MODEL_VERSION_ID=$(echo "$MODEL_INFO" | grep -o '"modelVersions":\[[^]]*\]' | grep -o '"id":[0-9]*' | head -1 | grep -o '[0-9]*')
@@ -183,10 +225,12 @@ while true; do
         fi
         LORA_TYPES+=("civitai")
         LORA_URLS+=("$LORA_URL")
+        MODEL_NAMES+=("$MODEL_NAME")
         echo -e "${GREEN}Added Civitai URL to download list!${NC}"
     elif [[ "$LORA_URL" == *"huggingface.co"* ]]; then
         LORA_TYPES+=("huggingface")
         LORA_URLS+=("$LORA_URL")
+        MODEL_NAMES+=("")  # Empty placeholder for HuggingFace URLs
         echo -e "${GREEN}Added Hugging Face URL to download list!${NC}"
     else
         echo -e "${RED}Unsupported URL format. Please enter a civitai.ai or huggingface.co URL.${NC}"
@@ -204,18 +248,26 @@ else
     for i in "${!LORA_URLS[@]}"; do
         LORA_URL="${LORA_URLS[$i]}"
         LORA_TYPE="${LORA_TYPES[$i]}"
+        MODEL_NAME="${MODEL_NAMES[$i]}"
         
-        # Extract filename from URL
+        # Extract filename from URL or headers
         if [[ "$LORA_TYPE" == "civitai" ]]; then
             # For civitai URLs, we need to use the API key when extracting the filename
             if [ -n "$CIVITAI_API_KEY" ]; then
-                FILENAME=$(curl -sI -H "Authorization: Bearer $CIVITAI_API_KEY" "$LORA_URL" | grep -i "content-disposition" | sed -n 's/.*filename=\([^;]*\).*/\1/p' | tr -d '"')
+                HEADER_FILENAME=$(curl -sI -H "Authorization: Bearer $CIVITAI_API_KEY" "$LORA_URL" | grep -i "content-disposition" | sed -n 's/.*filename=\([^;]*\).*/\1/p' | tr -d '"')
             else
-                FILENAME=$(curl -sI "$LORA_URL" | grep -i "content-disposition" | sed -n 's/.*filename=\([^;]*\).*/\1/p' | tr -d '"')
+                HEADER_FILENAME=$(curl -sI "$LORA_URL" | grep -i "content-disposition" | sed -n 's/.*filename=\([^;]*\).*/\1/p' | tr -d '"')
             fi
             
-            # If filename extraction failed, use a default name
-            if [ -z "$FILENAME" ]; then
+            # If header extraction worked, use that filename
+            if [ -n "$HEADER_FILENAME" ]; then
+                FILENAME="$HEADER_FILENAME"
+            # If we have a model name from earlier, use that
+            elif [ -n "$MODEL_NAME" ]; then
+                # Sanitize the model name and add extension
+                FILENAME="$(sanitize_filename "$MODEL_NAME").safetensors"
+            # Otherwise use a default name
+            else
                 FILENAME="civitai_lora_$i.safetensors"
             fi
         elif [[ "$LORA_TYPE" == "huggingface" ]]; then
