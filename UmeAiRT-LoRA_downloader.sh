@@ -44,10 +44,12 @@ download_with_progress() {
     local message=$3
     
     echo -e "${YELLOW}$message${NC}"
-    curl -L --progress-bar -o "$output_file" "$url" >> "$logFile" 2>&1
+    
+    # Download file with progress bar
+    curl -L --progress-bar -o "$output_file" "$url" | tee -a "$logFile" > /dev/null
+    
     echo -e " -> Downloaded to $(basename "$output_file")"
 }
-
 # Check for ComfyUI folder
 if [ -d "$installPath/ComfyUI" ]; then
     echo "ComfyUI folder detected"
