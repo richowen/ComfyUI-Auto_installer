@@ -182,8 +182,6 @@ show_spinner $! "Installing ComfyUI-Manager..."
 echo -e "${YELLOW}Installing additional nodes...${NC}"
 
 declare -A repos=(
-    ["ComfyUI-Impact-Pack"]="https://github.com/ltdrdata/ComfyUI-Impact-Pack"
-    ["ComfyUI-Impact-Pack/impact_subpack"]="https://github.com/ltdrdata/ComfyUI-Impact-Subpack"
     ["ComfyUI-GGUF"]="https://github.com/city96/ComfyUI-GGUF"
     ["ComfyUI-mxToolkit"]="https://github.com/Smirnov75/ComfyUI-mxToolkit"
     ["ComfyUI-Custom-Scripts"]="https://github.com/pythongosssss/ComfyUI-Custom-Scripts"
