@@ -4,10 +4,10 @@
 if [ -d "$(dirname "$0")/../comfyui_venv" ]; then
     source "$(dirname "$0")/../comfyui_venv/bin/activate"
     cd "$(dirname "$0")/../ComfyUI"
-    python main.py --use-pytorch-cross-attention --use-xformers --use-sageattention
+    python main.py --use-pytorch-cross-attention --use-sage-attention
 else
     cd "$(dirname "$0")/../ComfyUI"
-    python3 main.py --use-pytorch-cross-attention --use-xformers --use-sageattention
+    python3 main.py --use-pytorch-cross-attention --use-sage-attention
 fi
 
 read -rp "Press Enter to continue..."
