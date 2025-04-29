@@ -164,13 +164,16 @@ show_spinner $! "Installing transformers..."
 $PIP install wheel-stub >> "$logFile" 2>&1 &
 show_spinner $! "Installing wheel-stub..."
 
-# Install sageattention and triton for WAN optimization
-echo -e "${YELLOW}Installing sageattention and triton for WAN model optimization...${NC}"
+# Install optimization packages for WAN models
+echo -e "${YELLOW}Installing optimization packages for WAN model acceleration...${NC}"
 $PIP install sageattention >> "$logFile" 2>&1 &
 show_spinner $! "Installing sageattention..."
 
 $PIP install triton >> "$logFile" 2>&1 &
 show_spinner $! "Installing triton..."
+
+$PIP install xformers >> "$logFile" 2>&1 &
+show_spinner $! "Installing xformers..."
 
 # Download comfy settings and workflow
 mkdir -p "$comfyPath/user/default/workflows"

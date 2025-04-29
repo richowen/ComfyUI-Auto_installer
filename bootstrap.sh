@@ -202,11 +202,65 @@ find . -name "*.sh" -type f -exec chmod +x {} \;
 step "Running installer"
 ./UmeAiRT-AllinOne-Auto_install.sh
 
-# Final instructions
+# Final menu to run ComfyUI
 echo -e "${GREEN}Bootstrap complete!${NC}"
-echo -e "${BLUE}You can now use ComfyUI with the following commands:${NC}"
-echo "  cd $INSTALL_DIR"
-echo "  ./run_comfyui.sh         - Standard mode"
-echo "  ./run_comfyui_lowvram.sh - Low VRAM mode"
-echo ""
-echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
+
+if [ "$NONINTERACTIVE" = true ]; then
+    echo -e "${BLUE}You can now use ComfyUI with the following commands:${NC}"
+    echo "  cd $INSTALL_DIR"
+    echo "  ./run_comfyui.sh                       - Standard mode"
+    echo "  ./run_comfyui_lowvram.sh               - Low VRAM mode"
+    echo "  ./scripts/run_nvidia_gpu-sageattention.sh  - SageAttention"
+    echo ""
+    echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
+else
+    # Interactive menu
+    while true; do
+        echo -e "${BLUE}======================================================${NC}"
+        echo -e "${YELLOW}Would you like to start ComfyUI now?${NC}"
+        echo -e "${GREEN}1) Run ComfyUI in standard mode${NC}"
+        echo -e "${GREEN}2) Run ComfyUI in low VRAM mode${NC}"
+        echo -e "${GREEN}3) Run ComfyUI with SageAttention${NC}"
+        echo -e "${GREEN}4) Exit (don't run ComfyUI now)${NC}"
+        echo -e "${BLUE}======================================================${NC}"
+        read -rp "Enter your choice (1-4): " RUN_CHOICE
+        
+        case "$RUN_CHOICE" in
+            1)
+                echo -e "${YELLOW}Starting ComfyUI in standard mode...${NC}"
+                echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
+                cd "$INSTALL_DIR"
+                ./run_comfyui.sh
+                break
+                ;;
+            2)
+                echo -e "${YELLOW}Starting ComfyUI in low VRAM mode...${NC}"
+                echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
+                cd "$INSTALL_DIR"
+                ./run_comfyui_lowvram.sh
+                break
+                ;;
+            3)
+                echo -e "${YELLOW}Starting ComfyUI with SageAttention...${NC}"
+                echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
+                cd "$INSTALL_DIR"
+                ./scripts/run_nvidia_gpu-sageattention.sh
+                break
+                ;;
+            4)
+                echo -e "${YELLOW}Exiting without running ComfyUI.${NC}"
+                echo -e "${BLUE}You can start ComfyUI later with one of these commands:${NC}"
+                echo "  cd $INSTALL_DIR"
+                echo "  ./run_comfyui.sh                       - Standard mode"
+                echo "  ./run_comfyui_lowvram.sh               - Low VRAM mode"
+                echo "  ./scripts/run_nvidia_gpu-sageattention.sh  - SageAttention"
+                echo ""
+                echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}Invalid choice. Please enter a number between 1 and 4.${NC}"
+                ;;
+        esac
+    done
+fi
