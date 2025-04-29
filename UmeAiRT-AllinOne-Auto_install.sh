@@ -180,6 +180,26 @@ show_spinner $! "Extracting files..."
 
 rm -f "$comfyPath/user/default/workflows/UmeAiRT-WAN21_workflow.7z"
 
+# Create run scripts
+echo -e "${YELLOW}Creating run scripts...${NC}"
+
+# Create standard run script
+cat > "$installPath/run_comfyui.sh" << EOL
+#!/usr/bin/env bash
+source "$(dirname "\$0")/comfyui_venv/bin/activate"
+cd "$(dirname "\$0")/ComfyUI"
+python main.py
+EOL
+chmod +x "$installPath/run_comfyui.sh"
+
+# Create low VRAM run script
+cat > "$installPath/run_comfyui_lowvram.sh" << EOL
+#!/usr/bin/env bash
+source "$(dirname "\$0")/comfyui_venv/bin/activate"
+cd "$(dirname "\$0")/ComfyUI"
+python main.py --lowvram --use-pytorch-cross-attention
+EOL
+chmod +x "$installPath/run_comfyui_lowvram.sh"
 
 # User prompt for WAN models
 while true; do
