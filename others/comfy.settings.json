@@ -1,0 +1,17 @@
+{
+    "Comfy.LinkRenderMode": -1,
+    "Comfy.NodeLibrary.Bookmarks": [],
+    "Comfy.UseNewMenu": "Top",
+    "Comfy.NodeBadge.NodeLifeCycleBadgeMode": "None",
+    "Comfy.NodeBadge.NodeIdBadgeMode": "None",
+    "Comfy.NodeBadge.NodeSourceBadgeMode": "None",
+    "Comfy.NodeInputConversionSubmenus": true,
+    "Comfy.DisableSliders": false,
+    "Comfy.DisableFloatRounding": false,
+    "Comfy.Locale": "en",
+    "Comfy.Graph.CanvasInfo": true,
+    "Comfy.ColorPalette": "dark",
+    "Comfy.MenuPosition": false,
+    "Comfy.Settings.ExtensionPanel": true,
+    "Comfy.Workflow.SortNodeIdOnSave": true
+}
