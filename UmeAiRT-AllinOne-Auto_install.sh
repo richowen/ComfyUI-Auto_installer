@@ -220,14 +220,16 @@ while true; do
     esac
 done
 
-# User prompt for FLUX models
+# User prompt for LoRA models
 while true; do
-    echo -e "${YELLOW}Would you like to download FLUX models?${NC}"
-    read -rp "Enter your choice (Y or N) and press Enter: " MODELS
-    case "$MODELS" in
+    echo -e "${YELLOW}Would you like to download custom LoRA models?${NC}"
+    read -rp "Enter your choice (Y or N) and press Enter: " LORA_CHOICE
+    case "$LORA_CHOICE" in
         [Yy]* )
-            # Use local converted script
-            bash "$installPath/UmeAiRT-FLUX-Model_downloader.sh"
+            # Make the script executable
+            chmod +x "$installPath/UmeAiRT-LoRA_downloader.sh"
+            # Run the LoRA downloader
+            bash "$installPath/UmeAiRT-LoRA_downloader.sh"
             break
             ;;
         [Nn]* )
