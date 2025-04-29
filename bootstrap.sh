@@ -13,46 +13,6 @@ SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 SCRIPT_NAME="$(basename "$SCRIPT_PATH")"
 
-# Clean up previous bootstrap scripts
-cleanup_previous_bootstraps() {
-    echo -e "${BLUE}Checking for previous bootstrap scripts...${NC}"
-    
-    # Find all bootstrap.sh files in the home directory (excluding the current one)
-    mapfile -t BOOTSTRAP_FILES < <(find "$HOME" -name "bootstrap.sh" -type f -not -path "$SCRIPT_PATH" 2>/dev/null || true)
-    
-    if [ ${#BOOTSTRAP_FILES[@]} -gt 0 ]; then
-        echo -e "${YELLOW}Found ${#BOOTSTRAP_FILES[@]} other bootstrap.sh files:${NC}"
-        for file in "${BOOTSTRAP_FILES[@]}"; do
-            echo "  - $file"
-        done
-        
-        echo -e "${YELLOW}Cleaning up previous bootstrap scripts...${NC}"
-        for file in "${BOOTSTRAP_FILES[@]}"; do
-            echo "  Removing $file"
-            rm -f "$file"
-        done
-    else
-            INSTALL_DIR="$2"
-            shift 2
-            ;;
-        -b|--branch)
-            BRANCH="$2"
-            shift 2
-            ;;
-        -y|--yes)
-            NONINTERACTIVE=true
-            shift
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            echo -e "${RED}Unknown option: $1${NC}"
-            usage
-            ;;
-    esac
-done
-
 # Function to check if a command exists
 command_exists() {
     command -v "$1" &>/dev/null
@@ -137,10 +97,10 @@ else
     fi
 fi
 
-# Check for free disk space (need at least 20GB)
+# Check for free disk space (need at least 50GB)
 FREE_SPACE=$(df -BG --output=avail "$HOME" | tail -n 1 | tr -d 'G')
-if [ "$FREE_SPACE" -lt 20 ]; then
-    echo -e "${RED}Warning: Less than 20GB free disk space available.${NC}"
+if [ "$FREE_SPACE" -lt 50 ]; then
+    echo -e "${RED}Warning: Less than 50GB free disk space available.${NC}"
     echo -e "${RED}ComfyUI with models may require significant disk space.${NC}"
     if [ "$NONINTERACTIVE" != true ]; then
         read -rp "Continue anyway? (y/N) " response
