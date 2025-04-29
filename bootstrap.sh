@@ -8,30 +8,30 @@ RED='\033[31m'
 BLUE='\033[34m'
 NC='\033[0m'
 
-# Default installation directory
-DEFAULT_DIR="$HOME/comfyui-workspace"
-INSTALL_DIR="$DEFAULT_DIR"
+# Get the absolute path of this script
+SCRIPT_PATH="$(readlink -f "$0")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+SCRIPT_NAME="$(basename "$SCRIPT_PATH")"
 
-# Repository URL
-REPO_URL="https://github.com/richowen/ComfyUI-Auto_installer.git"
-BRANCH="main"
-
-# Function to display usage information
-usage() {
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  -d, --directory DIR    Installation directory (default: $DEFAULT_DIR)"
-    echo "  -b, --branch BRANCH    Git branch to use (default: main)"
-    echo "  -y, --yes              Non-interactive mode, answer yes to all prompts"
-    echo "  -h, --help             Display this help message"
-    exit 1
-}
-
-# Parse command line arguments
-NONINTERACTIVE=false
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -d|--directory)
+# Clean up previous bootstrap scripts
+cleanup_previous_bootstraps() {
+    echo -e "${BLUE}Checking for previous bootstrap scripts...${NC}"
+    
+    # Find all bootstrap.sh files in the home directory (excluding the current one)
+    mapfile -t BOOTSTRAP_FILES < <(find "$HOME" -name "bootstrap.sh" -type f -not -path "$SCRIPT_PATH" 2>/dev/null || true)
+    
+    if [ ${#BOOTSTRAP_FILES[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Found ${#BOOTSTRAP_FILES[@]} other bootstrap.sh files:${NC}"
+        for file in "${BOOTSTRAP_FILES[@]}"; do
+            echo "  - $file"
+        done
+        
+        echo -e "${YELLOW}Cleaning up previous bootstrap scripts...${NC}"
+        for file in "${BOOTSTRAP_FILES[@]}"; do
+            echo "  Removing $file"
+            rm -f "$file"
+        done
+    else
             INSTALL_DIR="$2"
             shift 2
             ;;

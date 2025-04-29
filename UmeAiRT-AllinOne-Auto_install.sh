@@ -68,6 +68,25 @@ show_spinner() {
     tput cnorm  # Restore cursor
 }
 
+# Function to install requirements and run install.py
+install_node_requirements() {
+    local node_path="$1"
+    local node_name="$2"
+    local indent="$3"
+    
+    # Check for and install requirements.txt
+    if [ -f "$node_path/requirements.txt" ]; then
+        $PIP install -r "$node_path/requirements.txt" --no-warn-script-location >> "$logFile" 2>&1 &
+        show_spinner $! "${indent}Installing $node_name requirements..."
+    fi
+    
+    # Check for and run install.py
+    if [ -f "$node_path/install.py" ]; then
+        echo -e "${indent}Found $node_name install.py script, running it..."
+        $PYTHON "$node_path/install.py" >> "$logFile" 2>&1 &
+        show_spinner $! "${indent}Running $node_name install.py script..."
+    fi
+}
 
 # Clone ComfyUI directly from GitHub
 echo -e "${YELLOW}Cloning ComfyUI from GitHub...${NC}"
@@ -96,7 +115,66 @@ echo -e "${YELLOW}Installing requirements...${NC}"
 $PIP install -r "$comfyPath/requirements.txt" >> "$logFile" 2>&1 &
 show_spinner $! "Installing Python requirements... (this may take a while)"
 
-# Clone and install custom nodes
+# Install additional packages
+echo -e "${YELLOW}Installing additional packages...${NC}"
+$PIP install wheel-stub >> "$logFile" 2>&1 &
+show_spinner $! "Installing wheel-stub..."
+
+$PIP install ultralytics --no-warn-script-location >> "$logFile" 2>&1 &
+show_spinner $! "Installing ultralytics..."
+
+$PIP install transformers==4.49.0 --upgrade >> "$logFile" 2>&1 &
+show_spinner $! "Installing transformers..."
+
+# Install onnx and insightface dependencies
+echo -e "${YELLOW}Installing onnx runtime and insightface dependencies...${NC}"
+$PIP install onnxruntime==1.19.2 onnxruntime-gpu==1.17.1 >> "$logFile" 2>&1 &
+show_spinner $! "Installing onnxruntime..."
+
+# Download appropriate insightface wheel based on Python version
+echo -e "${YELLOW}Checking Python version for appropriate insightface wheel...${NC}"
+PYTHON_VERSION=$($PYTHON --version | cut -d' ' -f2)
+PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+
+echo -e "${YELLOW}Using Python $PYTHON_MAJOR.$PYTHON_MINOR - Installing appropriate insightface...${NC}"
+if [ "$PYTHON_MINOR" -eq 10 ]; then
+    curl -L -o "insightface-0.7.3-cp310-cp310-linux_x86_64.whl" "https://files.pythonhosted.org/packages/0f/89/7c3e30dd5ee0de0a78882214e7ce8079de6c7b8e90f01a44b880b38df257/insightface-0.7.3-cp310-cp310-linux_x86_64.whl" >> "$logFile" 2>&1 &
+    show_spinner $! "Downloading insightface for Python 3.10..."
+    $PIP install insightface-0.7.3-cp310-cp310-linux_x86_64.whl >> "$logFile" 2>&1 &
+    show_spinner $! "Installing insightface for Python 3.10..."
+    rm -f insightface-0.7.3-cp310-cp310-linux_x86_64.whl
+elif [ "$PYTHON_MINOR" -eq 11 ]; then
+    curl -L -o "insightface-0.7.3-cp311-cp311-linux_x86_64.whl" "https://files.pythonhosted.org/packages/6b/99/8c29f3ca04be3b22ce8c5a5ba4f9c38f21c2c5768f3d02e0c40aa04d4f9b/insightface-0.7.3-cp311-cp311-linux_x86_64.whl" >> "$logFile" 2>&1 &
+    show_spinner $! "Downloading insightface for Python 3.11..."
+    $PIP install insightface-0.7.3-cp311-cp311-linux_x86_64.whl >> "$logFile" 2>&1 &
+    show_spinner $! "Installing insightface for Python 3.11..."
+    rm -f insightface-0.7.3-cp311-cp311-linux_x86_64.whl
+else
+    # Use pip to install insightface if no specific wheel
+    $PIP install insightface==0.7.3 >> "$logFile" 2>&1 &
+    show_spinner $! "Installing insightface from PyPI..."
+fi
+
+# Install facexlib and filterpy
+$PIP install --use-pep517 facexlib >> "$logFile" 2>&1 &
+show_spinner $! "Installing facexlib..."
+
+$PIP install git+https://github.com/rodjjo/filterpy.git >> "$logFile" 2>&1 &
+show_spinner $! "Installing filterpy..."
+
+# Install optimization packages for WAN models
+echo -e "${YELLOW}Installing optimization packages for WAN model acceleration...${NC}"
+$PIP install sageattention >> "$logFile" 2>&1 &
+show_spinner $! "Installing sageattention..."
+
+$PIP install triton >> "$logFile" 2>&1 &
+show_spinner $! "Installing triton..."
+
+$PIP install xformers >> "$logFile" 2>&1 &
+show_spinner $! "Installing xformers..."
+
+# NOW install custom nodes AFTER all dependencies
 echo -e "${YELLOW}Installing ComfyUI-Manager...${NC}"
 git clone https://github.com/ltdrdata/ComfyUI-Manager.git "$customNodesPath/ComfyUI-Manager" >> "$logFile" 2>&1 &
 show_spinner $! "Installing ComfyUI-Manager..."
@@ -126,27 +204,7 @@ declare -A repos=(
     ["ComfyUI-MultiGPU"]="https://github.com/pollockjj/ComfyUI-MultiGPU"
 )
 
-# Function to install requirements and run install.py
-install_node_requirements() {
-    local node_path="$1"
-    local node_name="$2"
-    local indent="$3"
-    
-    # Check for and install requirements.txt
-    if [ -f "$node_path/requirements.txt" ]; then
-        $PIP install -r "$node_path/requirements.txt" --no-warn-script-location >> "$logFile" 2>&1 &
-        show_spinner $! "${indent}Installing $node_name requirements..."
-    fi
-    
-    # Check for and run install.py
-    if [ -f "$node_path/install.py" ]; then
-        echo -e "${indent}Found $node_name install.py script, running it..."
-        $PYTHON "$node_path/install.py" >> "$logFile" 2>&1 &
-        show_spinner $! "${indent}Running $node_name install.py script..."
-    fi
-}
-
-# Function to track total progress
+# Clone and install nodes
 total_repos=${#repos[@]}
 current_repo=0
 
@@ -177,28 +235,6 @@ if [ -f "$customNodesPath/ComfyUI-Frame-Interpolation/requirements-with-cupy.txt
     show_spinner $! "Installing Frame-Interpolation requirements..."
 fi
 install_node_requirements "$customNodesPath/ComfyUI-Frame-Interpolation" "Frame-Interpolation" ""
-
-# Additional pip installs
-echo -e "${YELLOW}Installing additional packages...${NC}"
-$PIP install ultralytics --no-warn-script-location >> "$logFile" 2>&1 &
-show_spinner $! "Installing ultralytics..."
-
-$PIP install transformers==4.49.0 --upgrade >> "$logFile" 2>&1 &
-show_spinner $! "Installing transformers..."
-
-$PIP install wheel-stub >> "$logFile" 2>&1 &
-show_spinner $! "Installing wheel-stub..."
-
-# Install optimization packages for WAN models
-echo -e "${YELLOW}Installing optimization packages for WAN model acceleration...${NC}"
-$PIP install sageattention >> "$logFile" 2>&1 &
-show_spinner $! "Installing sageattention..."
-
-$PIP install triton >> "$logFile" 2>&1 &
-show_spinner $! "Installing triton..."
-
-$PIP install xformers >> "$logFile" 2>&1 &
-show_spinner $! "Installing xformers..."
 
 # Download comfy settings and workflow
 mkdir -p "$comfyPath/user/default/workflows"
