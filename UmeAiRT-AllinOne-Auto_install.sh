@@ -164,6 +164,14 @@ show_spinner $! "Installing transformers..."
 $PIP install wheel-stub >> "$logFile" 2>&1 &
 show_spinner $! "Installing wheel-stub..."
 
+# Install sageattention and triton for WAN optimization
+echo -e "${YELLOW}Installing sageattention and triton for WAN model optimization...${NC}"
+$PIP install sageattention >> "$logFile" 2>&1 &
+show_spinner $! "Installing sageattention..."
+
+$PIP install triton >> "$logFile" 2>&1 &
+show_spinner $! "Installing triton..."
+
 # Download comfy settings and workflow
 mkdir -p "$comfyPath/user/default/workflows"
 echo -e "${YELLOW}Downloading comfy settings...${NC}"
@@ -191,6 +199,25 @@ cd "$(dirname "\$0")/ComfyUI"
 python main.py 
 EOL
 chmod +x "$installPath/run_comfyui.sh"
+
+# Create sageattention run script
+mkdir -p "$installPath/scripts"
+cat > "$installPath/scripts/run_nvidia_gpu-sageattention.sh" << EOL
+#!/usr/bin/env bash
+source "$(dirname "\$0")/../comfyui_venv/bin/activate"
+cd "$(dirname "\$0")/../ComfyUI"
+python main.py --use-sage-attention
+EOL
+chmod +x "$installPath/scripts/run_nvidia_gpu-sageattention.sh"
+
+# Create low VRAM run script
+cat > "$installPath/run_comfyui_lowvram.sh" << EOL
+#!/usr/bin/env bash
+source "$(dirname "\$0")/comfyui_venv/bin/activate"
+cd "$(dirname "\$0")/ComfyUI"
+python main.py --lowvram
+EOL
+chmod +x "$installPath/run_comfyui_lowvram.sh"
 
 # User prompt for WAN models
 while true; do
@@ -235,8 +262,9 @@ done
 echo -e "${YELLOW}Installation completed successfully!${NC}"
 echo ""
 echo -e "${BLUE}To start ComfyUI, run either:${NC}"
-echo "  ./run_comfyui.sh         - Standard mode"
-echo "  ./run_comfyui_lowvram.sh - Low VRAM mode"
+echo "  ./run_comfyui.sh                      - Standard mode"
+echo "  ./run_comfyui_lowvram.sh              - Low VRAM mode"
+echo "  ./scripts/run_nvidia_gpu-sageattention.sh - SageAttention mode (better performance)"
 echo ""
 echo -e "${BLUE}Once started, open your browser and navigate to:${NC}"
 echo "  http://localhost:8188"
