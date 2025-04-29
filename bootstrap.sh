@@ -210,10 +210,9 @@ echo -e "${GREEN}Bootstrap complete!${NC}"
 
 if [ "$NONINTERACTIVE" = true ]; then
     echo -e "${BLUE}You can now use ComfyUI with the following commands:${NC}"
-    echo "  cd $INSTALL_DIR"
-    echo "  ./run_comfyui.sh                       - Standard mode"
-    echo "  ./run_comfyui_lowvram.sh               - Low VRAM mode"
-    echo "  ./scripts/run_nvidia_gpu-sageattention.sh  - SageAttention"
+    echo "  $INSTALL_DIR/ComfyUI-Auto_installer/run_comfyui.sh                       - Standard mode"
+    echo "  $INSTALL_DIR/ComfyUI-Auto_installer/run_comfyui_lowvram.sh               - Low VRAM mode"
+    echo "  $INSTALL_DIR/ComfyUI-Auto_installer/scripts/run_nvidia_gpu-sageattention.sh  - SageAttention"
     echo ""
     echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
 else
@@ -250,10 +249,9 @@ else
             4)
                 echo -e "${YELLOW}Exiting without running ComfyUI.${NC}"
                 echo -e "${BLUE}You can start ComfyUI later with one of these commands:${NC}"
-                echo "  cd $INSTALL_DIR"
-                echo "  ./run_comfyui.sh                       - Standard mode"
-                echo "  ./run_comfyui_lowvram.sh               - Low VRAM mode"
-                echo "  ./scripts/run_nvidia_gpu-sageattention.sh  - SageAttention"
+                echo "  $INSTALL_DIR/ComfyUI-Auto_installer/run_comfyui.sh                       - Standard mode"
+                echo "  $INSTALL_DIR/ComfyUI-Auto_installer/run_comfyui_lowvram.sh               - Low VRAM mode"
+                echo "  $INSTALL_DIR/ComfyUI-Auto_installer/scripts/run_nvidia_gpu-sageattention.sh  - SageAttention"
                 echo ""
                 echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
                 break

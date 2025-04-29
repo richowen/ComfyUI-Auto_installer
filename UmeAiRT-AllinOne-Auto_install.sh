@@ -258,8 +258,8 @@ echo -e "${YELLOW}Creating run scripts...${NC}"
 # Create standard run script
 cat > "$installPath/run_comfyui.sh" << EOL
 #!/usr/bin/env bash
-source "$(dirname "\$0")/comfyui_venv/bin/activate"
-cd "$(dirname "\$0")/ComfyUI"
+source "$installPath/comfyui_venv/bin/activate"
+cd "$installPath/ComfyUI"
 python main.py 
 EOL
 chmod +x "$installPath/run_comfyui.sh"
@@ -268,8 +268,8 @@ chmod +x "$installPath/run_comfyui.sh"
 mkdir -p "$installPath/scripts"
 cat > "$installPath/scripts/run_nvidia_gpu-sageattention.sh" << EOL
 #!/usr/bin/env bash
-source "$(dirname "\$0")/../comfyui_venv/bin/activate"
-cd "$(dirname "\$0")/../ComfyUI"
+source "$installPath/comfyui_venv/bin/activate"
+cd "$installPath/ComfyUI"
 python main.py --use-sage-attention
 EOL
 chmod +x "$installPath/scripts/run_nvidia_gpu-sageattention.sh"
@@ -277,8 +277,8 @@ chmod +x "$installPath/scripts/run_nvidia_gpu-sageattention.sh"
 # Create low VRAM run script
 cat > "$installPath/run_comfyui_lowvram.sh" << EOL
 #!/usr/bin/env bash
-source "$(dirname "\$0")/comfyui_venv/bin/activate"
-cd "$(dirname "\$0")/ComfyUI"
+source "$installPath/comfyui_venv/bin/activate"
+cd "$installPath/ComfyUI"
 python main.py --lowvram
 EOL
 chmod +x "$installPath/run_comfyui_lowvram.sh"
