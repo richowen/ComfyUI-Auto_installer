@@ -229,22 +229,19 @@ else
             1)
                 echo -e "${YELLOW}Starting ComfyUI in standard mode...${NC}"
                 echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
-                cd "$INSTALL_DIR"
-                ./run_comfyui.sh
+                "$INSTALL_DIR/ComfyUI-Auto_installer/run_comfyui.sh"
                 break
                 ;;
             2)
                 echo -e "${YELLOW}Starting ComfyUI in low VRAM mode...${NC}"
                 echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
-                cd "$INSTALL_DIR"
-                ./run_comfyui_lowvram.sh
+                "$INSTALL_DIR/ComfyUI-Auto_installer/run_comfyui_lowvram.sh"
                 break
                 ;;
             3)
-                echo -e "${YELLOW}Starting ComfyUI with SageAttention...${NC}"
+                echo -e "${YELLOW}Starting ComfyUI with SageAttention${NC}"
                 echo -e "${BLUE}Visit http://localhost:8188 in your browser once ComfyUI is running.${NC}"
-                cd "$INSTALL_DIR"
-                ./scripts/run_nvidia_gpu-sageattention.sh
+                "$INSTALL_DIR/ComfyUI-Auto_installer/scripts/run_nvidia_gpu-sageattention.sh"
                 break
                 ;;
             4)
